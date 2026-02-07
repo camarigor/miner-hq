@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinerHQ</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="logo">&#9935; MinerHQ</div>
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-page="dashboard">Dashboard</button>
+            <button class="nav-tab" data-page="shares">Shares</button>
+            <button class="nav-tab" data-page="settings">Settings</button>
+        </nav>
+        <div class="actions">
+            <button id="scan-btn" class="btn">&#128269; Scan</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Dashboard Page -->
+        <div id="page-dashboard" class="page active">
+            <!-- Summary Cards -->
+            <section class="summary-cards">
+                <div class="summary-card">
+                    <div class="card-label">HASHRATE</div>
+                    <div class="card-value" id="total-hashrate">0 TH/s</div>
+                    <div class="card-subtitle" id="hashrate-subtitle">0 miners active</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-label">POWER</div>
+                    <div class="card-value" id="total-power">0 W</div>
+                    <div class="card-subtitle" id="power-subtitle">estimated</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-label">BLOCKS</div>
+                    <div class="card-value" id="total-blocks">0</div>
+                    <div class="card-subtitle" id="blocks-subtitle">found</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-label">FLEET</div>
+                    <div class="card-value" id="fleet-status">
+                        <span class="status-online">0</span> / <span class="status-offline">0</span>
+                    </div>
+                    <div class="card-subtitle">online / offline</div>
+                </div>
+                <div class="summary-card earnings-card">
+                    <div class="card-label">
+                        EARNINGS
+                        <img id="earnings-coin-icon" class="earnings-icon" src="" alt="" style="display: none;">
+                    </div>
+                    <div class="card-value" id="earnings-total-coins">0</div>
+                    <div class="card-subtitle">
+                        <span id="earnings-block-reward">0</span> per block × <span id="earnings-blocks-found">0</span> blocks
+                    </div>
+                    <div class="card-subtitle earnings-usd" id="earnings-total-usd">≈ $0.00</div>
+                    <div class="earnings-dots" id="earnings-dots"></div>
+                </div>
+            </section>
+
+            <!-- Hashrate Chart -->
+            <section class="chart-section">
+                <div class="chart-header">
+                    <h2>HASHRATE HISTORY</h2>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="legend-color" style="background:#a564f6"></span>Hashrate</span>
+                        <span class="legend-item"><span class="legend-color legend-dashed" style="border-color:#a564f6"></span>10min</span>
+                        <span class="legend-item"><span class="legend-color legend-dotted" style="border-color:#a564f6"></span>1h</span>
+                        <span class="legend-item"><span class="legend-color" style="background:#2DA8B7"></span>VReg</span>
+                        <span class="legend-item"><span class="legend-color" style="background:#C84847"></span>ASIC</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="hashrate-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- Miners Grid -->
+            <section class="miners-section">
+                <h2>MINERS</h2>
+                <div id="miners-grid" class="miners-grid"></div>
+            </section>
+
+            <!-- Weekly Competition -->
+            <section class="competition-section">
+                <div class="competition-header">
+                    <h2>🏆 WEEKLY BEST SHARE</h2>
+                    <div class="competition-timer">
+                        <span class="timer-label">Ends in</span>
+                        <span id="competition-countdown" class="timer-value">--</span>
+                    </div>
+                </div>
+
+                <!-- Podium -->
+                <div id="competition-podium" class="podium-container">
+                    <div class="podium-place second" id="podium-2">
+                        <div class="podium-avatar">🥈</div>
+                        <div class="podium-name">--</div>
+                        <div class="podium-diff">--</div>
+                        <div class="podium-block">2</div>
+                    </div>
+                    <div class="podium-place first" id="podium-1">
+                        <div class="podium-crown">👑</div>
+                        <div class="podium-avatar">🥇</div>
+                        <div class="podium-name">--</div>
+                        <div class="podium-diff">--</div>
+                        <div class="podium-block">1</div>
+                    </div>
+                    <div class="podium-place third" id="podium-3">
+                        <div class="podium-avatar">🥉</div>
+                        <div class="podium-name">--</div>
+                        <div class="podium-diff">--</div>
+                        <div class="podium-block">3</div>
+                    </div>
+                </div>
+
+                <!-- Other competitors -->
+                <div id="competition-list" class="competition-list"></div>
+
+                <!-- Achievements -->
+                <div id="competition-achievements" class="achievements-container"></div>
+            </section>
+
+            <!-- Block Competition -->
+            <section class="competition-section block-competition">
+                <div class="competition-header">
+                    <h2>⛏️ BLOCK HUNTERS</h2>
+                    <div class="block-competition-subtitle">Weekly & All-Time Rankings</div>
+                </div>
+
+                <!-- Block Leaderboard -->
+                <div id="block-leaderboard" class="block-leaderboard"></div>
+            </section>
+
+            <!-- Money Makers Competition -->
+            <section class="competition-section money-makers">
+                <div class="competition-header">
+                    <h2>💰 MONEY MAKERS</h2>
+                    <div class="block-competition-subtitle">Total USD Earned Rankings</div>
+                </div>
+
+                <!-- Money Makers Leaderboard -->
+                <div id="money-makers-leaderboard" class="money-makers-leaderboard"></div>
+            </section>
+        </div>
+
+        <!-- Shares Page -->
+        <div id="page-shares" class="page">
+            <section class="shares-analysis">
+                <h2>BEST SHARES</h2>
+                <div class="best-shares-grid">
+                    <div class="best-share-card">
+                        <div class="card-label">ALL TIME BEST</div>
+                        <div class="card-value" id="best-share-alltime">-</div>
+                        <div class="card-subtitle" id="best-share-alltime-info">-</div>
+                    </div>
+                    <div class="best-share-card">
+                        <div class="card-label">SESSION BEST</div>
+                        <div class="card-value" id="best-share-session">-</div>
+                        <div class="card-subtitle" id="best-share-session-info">-</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="chart-section">
+                <div class="chart-header">
+                    <h2>SHARE DIFFICULTY OVER TIME</h2>
+                    <div class="chart-controls">
+                        <select id="shares-miner-filter" class="select-filter">
+                            <option value="">All Miners</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="shares-scatter-chart"></canvas>
+                </div>
+            </section>
+
+            <section class="chart-section">
+                <h2>DIFFICULTY DISTRIBUTION</h2>
+                <div class="chart-container chart-small">
+                    <canvas id="shares-histogram-chart"></canvas>
+                </div>
+            </section>
+
+            <section class="shares-section">
+                <h2>RECENT SHARES</h2>
+                <div id="shares-history-feed" class="shares-feed"></div>
+            </section>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="page-settings" class="page">
+            <section class="settings-section">
+                <h2>MINERS</h2>
+                <div id="settings-miners-list" class="settings-list"></div>
+            </section>
+
+            <section class="settings-section">
+                <h2>ALERTS</h2>
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label>Discord Webhook URL</label>
+                        <div class="input-with-button">
+                            <input type="text" id="alert-webhook" class="input" placeholder="https://discord.com/api/webhooks/...">
+                            <button class="btn btn-test" onclick="app.testWebhook()">Test</button>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Miner Offline (seconds)</label>
+                            <input type="number" id="alert-offline" class="input" value="60">
+                        </div>
+                        <div class="form-group">
+                            <label>Temperature Above (°C)</label>
+                            <input type="number" id="alert-temp" class="input" value="70">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Hashrate Drop Below (%)</label>
+                            <input type="number" id="alert-hashrate" class="input" value="80">
+                        </div>
+                        <div class="form-group">
+                            <label>Fan RPM Below</label>
+                            <input type="number" id="alert-fan" class="input" value="1000">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>WiFi Signal Below (dBm)</label>
+                            <input type="number" id="alert-wifi" class="input" value="-70">
+                        </div>
+                    </div>
+                    <div class="form-checkboxes">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="alert-rejected"> Alert on Share Rejected
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="alert-pool-disconnect"> Alert on Pool Disconnect
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="alert-best-diff"> Alert on New Best Difficulty
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="alert-block-found"> Alert on Block Found
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="alert-new-leader"> Alert on New Weekly Leader
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="settings-section">
+                <h2>ENERGY</h2>
+                <div class="settings-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cost per kWh</label>
+                            <input type="number" id="energy-cost" class="input" step="0.01" value="0.12">
+                        </div>
+                        <div class="form-group">
+                            <label>Currency</label>
+                            <select id="energy-currency" class="input">
+                                <option value="USD">USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="BRL">BRL (R$)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="settings-section">
+                <h2>DATA RETENTION</h2>
+                <div class="settings-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Keep Data (days)</label>
+                            <input type="number" id="retention-days" class="input" value="30">
+                        </div>
+                        <div class="form-group">
+                            <label>Database Size</label>
+                            <div class="db-size-display" id="db-size">-</div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button id="purge-btn" class="btn btn-danger">Purge Old Data</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="settings-section">
+                <div class="form-actions">
+                    <button id="save-settings-btn" class="btn btn-primary">Save Settings</button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Scan Modal -->
+    <div id="scan-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>&#128269; Network Scan</h3>
+                <button id="modal-close" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="scan-status" class="scan-status">Click scan to discover miners on your network</div>
+                <div id="scan-results" class="scan-results"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="start-scan-btn" class="btn btn-primary">Start Scan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Miner Detail Modal -->
+    <div id="miner-modal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="miner-modal-title">Miner Details</h3>
+                <button id="miner-modal-close" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body" id="miner-modal-body">
+                <!-- Filled dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

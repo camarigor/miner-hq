@@ -1,0 +1,26 @@
+# Binaries
+minerhq
+*.exe
+
+# Data
+*.db
+*.sqlite
+
+# Config with secrets
+config.local.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tools
+.playwright-mcp/
+.claude/
+
+# Docs
+docs/

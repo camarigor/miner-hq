@@ -1,0 +1,17 @@
+services:
+  minerhq:
+    build: .
+    container_name: minerhq
+    ports:
+      - "8080:8080"
+    volumes:
+      - minerhq-data:/data
+      - ./web:/app/web:ro  # Mount web files for development
+    environment:
+      - TZ=America/Sao_Paulo
+    restart: unless-stopped
+    # Use host network to scan local network
+    network_mode: host
+
+volumes:
+  minerhq-data:
