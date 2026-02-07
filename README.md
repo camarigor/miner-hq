@@ -1,6 +1,6 @@
 # MinerHQ
 
-Real-time monitoring dashboard for NerdQAxe ASIC miners. Track hashrate, temperature, power consumption, and profitability across your entire fleet — with Discord alerts and weekly competitions between your miners.
+Real-time monitoring dashboard for NerdQAxe and AxeOS/Zyber ASIC miners. Track hashrate, temperature, power consumption, and profitability across your entire fleet — with Discord alerts and weekly competitions between your miners.
 
 **Stack:** Go + SQLite + Vanilla JS + WebSocket + Docker
 
@@ -19,6 +19,8 @@ Real-time monitoring dashboard for NerdQAxe ASIC miners. Track hashrate, tempera
 
 ## Supported Hardware
 
+### NerdQAxe Firmware
+
 | Device | ASIC |
 |--------|------|
 | NerdQAxe++ | BM1370 |
@@ -27,6 +29,14 @@ Real-time monitoring dashboard for NerdQAxe ASIC miners. Track hashrate, tempera
 | NerdAxe+ | BM1368 |
 | NerdAxe | BM1366 |
 | NerdOctaxe | BM1368 |
+
+### AxeOS/Zyber Firmware
+
+| Device | ASIC | Firmware |
+|--------|------|----------|
+| Any AxeOS-compatible board | BM1370, BM1368, BM1366 | AxeOS / Zyber (v2.x+) |
+
+> AxeOS miners are auto-detected via the `axeOSVersion` field in the API response. Pool connection status is inferred from accepted shares and stratum configuration.
 
 ---
 
@@ -42,7 +52,7 @@ Open `http://localhost:8080` in your browser.
 
 ### Adding Miners
 
-1. Go to **Settings** and click **Scan Network** — MinerHQ will auto-discover NerdQAxe devices on your local network
+1. Go to **Settings** and click **Scan Network** — MinerHQ will auto-discover NerdQAxe and AxeOS/Zyber devices on your local network
 
 > **Note:** The Docker container runs in `host` network mode to enable local network scanning.
 
@@ -246,7 +256,7 @@ internal/
   collector/         # Miner polling, share/block parsing, WebSocket client
   config/            # Configuration loading and persistence
   pricing/           # Coin prices (Binance/CoinGecko), block rewards
-  scanner/           # Network auto-discovery for NerdQAxe devices
+  scanner/           # Network auto-discovery for NerdQAxe and AxeOS/Zyber devices
   storage/           # SQLite database, models, queries
 web/
   templates/         # HTML (SPA)
