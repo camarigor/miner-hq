@@ -144,14 +144,15 @@ func TestDetectSubnet(t *testing.T) {
 	t.Logf("Detected subnet: %s", subnet)
 }
 
-func TestIsNerdQAxe(t *testing.T) {
+func TestIsSupportedMiner(t *testing.T) {
 	s := NewScanner()
 
 	tests := []struct {
-		name        string
-		deviceModel string
-		asicModel   string
-		want        bool
+		name         string
+		deviceModel  string
+		asicModel    string
+		axeOSVersion string
+		want         bool
 	}{
 		{
 			name:        "NerdQAxe++",
@@ -213,6 +214,27 @@ func TestIsNerdQAxe(t *testing.T) {
 			asicModel:   "",
 			want:        false,
 		},
+		{
+			name:         "AxeOS with BM1370",
+			deviceModel:  "",
+			asicModel:    "BM1370",
+			axeOSVersion: "v2.11.5-Zyber",
+			want:         true,
+		},
+		{
+			name:         "AxeOS with empty device model",
+			deviceModel:  "",
+			asicModel:    "",
+			axeOSVersion: "v2.11.5-Zyber",
+			want:         true,
+		},
+		{
+			name:         "AxeOS with unknown ASIC",
+			deviceModel:  "",
+			asicModel:    "BM1397",
+			axeOSVersion: "v1.0.0",
+			want:         true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -221,10 +243,12 @@ func TestIsNerdQAxe(t *testing.T) {
 				DeviceModel: tt.deviceModel,
 				ASICModel:   tt.asicModel,
 			}
+			info.AxeOSVersion = tt.axeOSVersion
 
-			got := s.isNerdQAxe(info)
+			got := s.isSupportedMiner(info)
 			if got != tt.want {
-				t.Errorf("isNerdQAxe(%q, %q) = %v, want %v", tt.deviceModel, tt.asicModel, got, tt.want)
+				t.Errorf("isSupportedMiner(device=%q, asic=%q, axeos=%q) = %v, want %v",
+					tt.deviceModel, tt.asicModel, tt.axeOSVersion, got, tt.want)
 			}
 		})
 	}

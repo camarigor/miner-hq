@@ -9,7 +9,8 @@ import (
 	"github.com/camarigor/miner-hq/internal/storage"
 )
 
-// MinerAPIResponse matches the NerdQAxe /api/system/info response
+// MinerAPIResponse matches the /api/system/info response from NerdQAxe and AxeOS/Zyber firmware.
+// AxeOS-specific fields are zero-valued when not present in the JSON response.
 type MinerAPIResponse struct {
 	DeviceModel     string  `json:"deviceModel"`
 	ASICModel       string  `json:"ASICModel"`
@@ -50,6 +51,19 @@ type MinerAPIResponse struct {
 			BestDiff       float64 `json:"bestDiff"`
 		} `json:"pools"`
 	} `json:"stratum"`
+
+	// AxeOS/Zyber-specific fields (zero-value when not present)
+	AxeOSVersion    string  `json:"axeOSVersion"`
+	BoardVersion    string  `json:"boardVersion"`
+	StratumURL      string  `json:"stratumURL"`
+	StratumPort     int     `json:"stratumPort"`
+	StratumUser     string  `json:"stratumUser"`
+	IsUsingFallback int     `json:"isUsingFallbackStratum"`
+	BlockFound      int     `json:"blockFound"`
+	BlockHeight     int64   `json:"blockHeight"`
+	NetworkDiff     float64 `json:"networkDifficulty"`
+	Temp2           float64 `json:"temp2"`
+	Fan2RPM         int     `json:"fan2rpm"`
 }
 
 // MinerClient handles communication with NerdQAxe miners
@@ -90,17 +104,34 @@ func (c *MinerClient) FetchInfo(ip string) (*MinerAPIResponse, error) {
 
 // ToSnapshot converts API response to storage.MinerSnapshot
 func (c *MinerClient) ToSnapshot(ip string, info *MinerAPIResponse) *storage.MinerSnapshot {
-	// Determine pool connection status from stratum pools
+	isAxeOS := info.AxeOSVersion != ""
+
+	// Pool connection: AxeOS has no stratum.pools[].connected field,
+	// so we infer from accepted shares + configured stratum URL.
 	poolConnected := false
-	if len(info.Stratum.Pools) > 0 {
+	if isAxeOS {
+		poolConnected = info.SharesAccepted > 0 && info.StratumURL != ""
+	} else if len(info.Stratum.Pools) > 0 {
 		poolConnected = info.Stratum.Pools[0].Connected
+	}
+
+	// Found blocks: AxeOS uses "blockFound" instead of "foundBlocks"
+	foundBlocks := info.FoundBlocks
+	if isAxeOS && info.BlockFound > 0 {
+		foundBlocks = info.BlockFound
+	}
+
+	// Device model: AxeOS doesn't send "deviceModel", build from BoardVersion + ASICModel
+	deviceModel := info.DeviceModel
+	if deviceModel == "" && isAxeOS {
+		deviceModel = fmt.Sprintf("AxeOS (%s)", info.ASICModel)
 	}
 
 	return &storage.MinerSnapshot{
 		MinerIP:       ip,
 		Timestamp:     time.Now(),
 		Hostname:      info.Hostname,
-		DeviceModel:   info.DeviceModel,
+		DeviceModel:   deviceModel,
 		HashRate:      info.HashRate,
 		HashRate1m:    info.HashRate1m,
 		HashRate10m:   info.HashRate10m,
@@ -120,17 +151,22 @@ func (c *MinerClient) ToSnapshot(ip string, info *MinerAPIResponse) *storage.Min
 		PoolConnected:    poolConnected,
 		UptimeSecs:       info.UptimeSeconds,
 		WifiRSSI:         info.WifiRSSI,
-		FoundBlocks:      info.FoundBlocks,
+		FoundBlocks:      foundBlocks,
 		TotalFoundBlocks: info.TotalFoundBlocks,
 	}
 }
 
 // ToMiner converts API response to storage.Miner
 func (c *MinerClient) ToMiner(ip string, info *MinerAPIResponse) *storage.Miner {
+	deviceModel := info.DeviceModel
+	if deviceModel == "" && info.AxeOSVersion != "" {
+		deviceModel = fmt.Sprintf("AxeOS (%s)", info.ASICModel)
+	}
+
 	return &storage.Miner{
 		IP:          ip,
 		Hostname:    info.Hostname,
-		DeviceModel: info.DeviceModel,
+		DeviceModel: deviceModel,
 		ASICModel:   info.ASICModel,
 		Enabled:     true,
 		LastSeen:    time.Now(),

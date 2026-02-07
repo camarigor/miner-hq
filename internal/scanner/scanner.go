@@ -36,7 +36,7 @@ type ScanResult struct {
 	Info  *collector.MinerAPIResponse
 }
 
-// Scanner scans networks for NerdQAxe miners
+// Scanner scans networks for supported miners (NerdQAxe, AxeOS/Zyber)
 type Scanner struct {
 	client      *collector.MinerClient
 	concurrency int
@@ -130,7 +130,7 @@ func (s *Scanner) DetectAllSubnets() []string {
 	return subnets
 }
 
-// Scan scans the given subnet for NerdQAxe miners
+// Scan scans the given subnet for supported miners
 func (s *Scanner) Scan(ctx context.Context, subnet string) ([]ScanResult, error) {
 	ips, err := s.expandSubnet(subnet)
 	if err != nil {
@@ -174,15 +174,15 @@ func (s *Scanner) Scan(ctx context.Context, subnet string) ([]ScanResult, error)
 	return results, nil
 }
 
-// ScanSingle checks a single IP for a NerdQAxe miner
+// ScanSingle checks a single IP for a supported miner (NerdQAxe or AxeOS/Zyber)
 func (s *Scanner) ScanSingle(ip string) (*ScanResult, error) {
 	info, err := s.client.FetchInfo(ip)
 	if err != nil {
 		return nil, err
 	}
 
-	if !s.isNerdQAxe(info) {
-		return nil, fmt.Errorf("device at %s is not a NerdQAxe miner", ip)
+	if !s.isSupportedMiner(info) {
+		return nil, fmt.Errorf("device at %s is not a supported miner", ip)
 	}
 
 	miner := s.client.ToMiner(ip, info)
@@ -193,8 +193,13 @@ func (s *Scanner) ScanSingle(ip string) (*ScanResult, error) {
 	}, nil
 }
 
-// isNerdQAxe checks if the device is a known NerdQAxe model
-func (s *Scanner) isNerdQAxe(info *collector.MinerAPIResponse) bool {
+// isSupportedMiner checks if the device is a known NerdQAxe or AxeOS/Zyber miner
+func (s *Scanner) isSupportedMiner(info *collector.MinerAPIResponse) bool {
+	// AxeOS/Zyber firmware detection
+	if info.AxeOSVersion != "" {
+		return true
+	}
+
 	// Check deviceModel against known models
 	for _, model := range knownDeviceModels {
 		if strings.EqualFold(info.DeviceModel, model) {
