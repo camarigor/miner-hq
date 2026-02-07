@@ -43,7 +43,6 @@ Open `http://localhost:8080` in your browser.
 ### Adding Miners
 
 1. Go to **Settings** and click **Scan Network** — MinerHQ will auto-discover NerdQAxe devices on your local network
-2. Or add miners manually by IP address
 
 > **Note:** The Docker container runs in `host` network mode to enable local network scanning.
 
