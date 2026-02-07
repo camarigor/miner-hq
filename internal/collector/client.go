@@ -127,16 +127,29 @@ func (c *MinerClient) ToSnapshot(ip string, info *MinerAPIResponse) *storage.Min
 		deviceModel = fmt.Sprintf("AxeOS (%s)", info.ASICModel)
 	}
 
+	// Hashrate averages: AxeOS only sends raw hashRate, not 1m/10m/1h/1d averages.
+	// Use raw hashrate as fallback so charts and stats aren't zeroed out.
+	hashRate1m := info.HashRate1m
+	hashRate10m := info.HashRate10m
+	hashRate1h := info.HashRate1h
+	hashRate1d := info.HashRate1d
+	if isAxeOS && hashRate1m == 0 {
+		hashRate1m = info.HashRate
+		hashRate10m = info.HashRate
+		hashRate1h = info.HashRate
+		hashRate1d = info.HashRate
+	}
+
 	return &storage.MinerSnapshot{
 		MinerIP:       ip,
 		Timestamp:     time.Now(),
 		Hostname:      info.Hostname,
 		DeviceModel:   deviceModel,
 		HashRate:      info.HashRate,
-		HashRate1m:    info.HashRate1m,
-		HashRate10m:   info.HashRate10m,
-		HashRate1h:    info.HashRate1h,
-		HashRate1d:    info.HashRate1d,
+		HashRate1m:    hashRate1m,
+		HashRate10m:   hashRate10m,
+		HashRate1h:    hashRate1h,
+		HashRate1d:    hashRate1d,
 		Temperature:   info.Temp,
 		VRTemp:        info.VRTemp,
 		Power:         info.Power,
