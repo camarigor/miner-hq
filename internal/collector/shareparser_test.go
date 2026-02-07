@@ -60,6 +60,49 @@ func TestShareParser_ParseHighDifficultyShare(t *testing.T) {
 	}
 }
 
+func TestShareParser_ParseAxeOSShareLine(t *testing.T) {
+	parser := NewShareParser()
+	minerIP := "192.168.1.23"
+	line := `I (16860088) asic_result: ID: 69868e2b00000b0b, ASIC nr: 0, ver: 24564000 Nonce C27001F0 diff 432.8 of 2048.`
+
+	share := parser.Parse(minerIP, line)
+
+	if share == nil {
+		t.Fatal("expected AxeOS share to be parsed, got nil")
+	}
+
+	if share.MinerIP != minerIP {
+		t.Errorf("expected MinerIP %q, got %q", minerIP, share.MinerIP)
+	}
+
+	if share.JobID != "69868e2b00000b0b" {
+		t.Errorf("expected JobID %q, got %q", "69868e2b00000b0b", share.JobID)
+	}
+
+	if share.AsicNum != 0 {
+		t.Errorf("expected AsicNum %d, got %d", 0, share.AsicNum)
+	}
+
+	if share.Difficulty != 432.8 {
+		t.Errorf("expected Difficulty %f, got %f", 432.8, share.Difficulty)
+	}
+}
+
+func TestShareParser_ParseAxeOSHighDiffShare(t *testing.T) {
+	parser := NewShareParser()
+	line := `I (16861575) asic_result: ID: 69868e2b00000b0b, ASIC nr: 0, ver: 242A8000 Nonce 74CE0428 diff 6880.0 of 2048.`
+
+	share := parser.Parse("10.0.0.1", line)
+
+	if share == nil {
+		t.Fatal("expected AxeOS high-diff share to be parsed, got nil")
+	}
+
+	if share.Difficulty != 6880.0 {
+		t.Errorf("expected Difficulty %f, got %f", 6880.0, share.Difficulty)
+	}
+}
+
 func TestShareParser_NonShareLineReturnsNil(t *testing.T) {
 	parser := NewShareParser()
 
