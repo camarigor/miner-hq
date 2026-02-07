@@ -10,12 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/marques/minerhq/internal/alerts"
-	"github.com/marques/minerhq/internal/api"
-	"github.com/marques/minerhq/internal/collector"
-	"github.com/marques/minerhq/internal/config"
-	"github.com/marques/minerhq/internal/pricing"
-	"github.com/marques/minerhq/internal/storage"
+	"github.com/camarigor/miner-hq/internal/alerts"
+	"github.com/camarigor/miner-hq/internal/api"
+	"github.com/camarigor/miner-hq/internal/collector"
+	"github.com/camarigor/miner-hq/internal/config"
+	"github.com/camarigor/miner-hq/internal/pricing"
+	"github.com/camarigor/miner-hq/internal/storage"
 )
 
 func main() {
