@@ -1494,8 +1494,9 @@ class MinerHQ {
         // Also update shares history for the Shares page
         this.sharesHistory.unshift(share);
 
-        // Keep shares from last 15 minutes (to cover 10-min chart window)
-        const cutoffTime = new Date(Date.now() - 15 * 60 * 1000);
+        // Trim shares to current timeframe window
+        const tf = this.getSharesTimeframeConfig();
+        const cutoffTime = new Date(Date.now() - tf.minutes * 60 * 1000);
         this.sharesHistory = this.sharesHistory.filter(s => new Date(s.timestamp) >= cutoffTime);
         if (this.currentPage === 'shares') {
             this.renderSharesHistoryFeed();
@@ -1783,13 +1784,22 @@ class MinerHQ {
         this.initSharesCharts();
         this.renderSharesHistoryFeed();
 
-        // Start periodic refresh for sliding window effect (fast updates, no animation)
+        // Start periodic refresh for sliding window effect
+        this.startSharesChartRefresh();
+    }
+
+    startSharesChartRefresh() {
         if (this.sharesChartInterval) clearInterval(this.sharesChartInterval);
+
+        // Faster refresh for short timeframes, slower for long ones
+        const tf = this.getSharesTimeframeConfig();
+        const intervalMs = tf.minutes <= 30 ? 500 : tf.minutes <= 360 ? 2000 : 5000;
+
         this.sharesChartInterval = setInterval(() => {
             if (this.currentPage === 'shares') {
                 this.updateSharesCharts();
             }
-        }, 500);
+        }, intervalMs);
     }
 
     async loadBestShares() {
@@ -1818,9 +1828,27 @@ class MinerHQ {
         }
     }
 
+    getSharesTimeframeConfig() {
+        const filter = document.getElementById('shares-timeframe-filter');
+        const minutes = filter ? parseInt(filter.value) : 30;
+
+        // Scaled limits per timeframe to keep the chart responsive
+        const configs = {
+            30:    { minutes: 30,    hours: 1,   limit: 5000  },
+            360:   { minutes: 360,   hours: 6,   limit: 10000 },
+            1440:  { minutes: 1440,  hours: 24,  limit: 15000 },
+            4320:  { minutes: 4320,  hours: 72,  limit: 20000 },
+            8640:  { minutes: 8640,  hours: 144, limit: 20000 },
+            10080: { minutes: 10080, hours: 168, limit: 20000 },
+        };
+
+        return configs[minutes] || configs[30];
+    }
+
     async loadSharesHistory() {
         try {
-            const response = await fetch('/api/shares?hours=1&limit=5000');
+            const tf = this.getSharesTimeframeConfig();
+            const response = await fetch(`/api/shares?hours=${tf.hours}&limit=${tf.limit}`);
             if (!response.ok) return;
 
             const newShares = await response.json();
@@ -1835,9 +1863,9 @@ class MinerHQ {
                 const uniqueNewShares = newShares.filter(s => !existingIds.has(s.id));
                 this.sharesHistory = [...this.sharesHistory, ...uniqueNewShares];
 
-                // Sort by timestamp descending and keep last 15 minutes
+                // Sort by timestamp descending and trim to timeframe
                 this.sharesHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                const cutoffTime = new Date(Date.now() - 15 * 60 * 1000);
+                const cutoffTime = new Date(Date.now() - tf.minutes * 60 * 1000);
                 this.sharesHistory = this.sharesHistory.filter(s => new Date(s.timestamp) >= cutoffTime);
             }
         } catch (error) {
@@ -1873,13 +1901,25 @@ class MinerHQ {
     }
 
     bindSharesFilterEvent() {
-        const filter = document.getElementById('shares-miner-filter');
-        if (!filter) return;
+        const minerFilter = document.getElementById('shares-miner-filter');
+        if (minerFilter) {
+            minerFilter.onchange = () => {
+                this.updateSharesCharts();
+                this.renderSharesHistoryFeed();
+            };
+        }
 
-        filter.onchange = () => {
-            this.updateSharesCharts();
-            this.renderSharesHistoryFeed();
-        };
+        const timeframeFilter = document.getElementById('shares-timeframe-filter');
+        if (timeframeFilter) {
+            timeframeFilter.onchange = async () => {
+                // Reload shares from API with new timeframe, then redraw
+                this.sharesHistory = [];
+                await this.loadSharesHistory();
+                this.initSharesScatterChart();
+                this.updateSharesCharts();
+                this.renderSharesHistoryFeed();
+            };
+        }
     }
 
     getFilteredShares() {
@@ -1898,12 +1938,12 @@ class MinerHQ {
 
     updateSharesCharts() {
         const filteredShares = this.getFilteredShares();
+        const tf = this.getSharesTimeframeConfig();
 
-        // Update scatter chart with sliding window (last 10 minutes for better visibility)
+        // Update scatter chart with selected timeframe window
         if (this.sharesScatterChart) {
             const now = new Date();
-            const windowMinutes = 10;
-            const windowStart = new Date(now.getTime() - windowMinutes * 60 * 1000);
+            const windowStart = new Date(now.getTime() - tf.minutes * 60 * 1000);
 
             const data = filteredShares
                 .filter(s => new Date(s.timestamp) >= windowStart)
@@ -1944,21 +1984,33 @@ class MinerHQ {
         return '';
     }
 
+    getSharesTimeAxisConfig(minutes) {
+        if (minutes <= 30) return { unit: 'minute', stepSize: 5, fmt: 'HH:mm:ss' };
+        if (minutes <= 360) return { unit: 'minute', stepSize: 30, fmt: 'HH:mm' };
+        if (minutes <= 1440) return { unit: 'hour', stepSize: 2, fmt: 'HH:mm' };
+        if (minutes <= 4320) return { unit: 'hour', stepSize: 8, fmt: 'MMM d HH:mm' };
+        return { unit: 'hour', stepSize: 12, fmt: 'MMM d HH:mm' };
+    }
+
     initSharesScatterChart() {
         const ctx = document.getElementById('shares-scatter-chart');
         if (!ctx) return;
 
         if (this.sharesScatterChart) this.sharesScatterChart.destroy();
 
-        // Show last 10 minutes of shares with sliding window
+        const tf = this.getSharesTimeframeConfig();
+        const axisConfig = this.getSharesTimeAxisConfig(tf.minutes);
+
         const now = new Date();
-        const windowMinutes = 10;
-        const windowStart = new Date(now.getTime() - windowMinutes * 60 * 1000);
+        const windowStart = new Date(now.getTime() - tf.minutes * 60 * 1000);
 
         const filteredShares = this.getFilteredShares();
         const data = filteredShares
             .filter(s => new Date(s.timestamp) >= windowStart)
             .map(s => ({ x: new Date(s.timestamp), y: s.difficulty || 0 }));
+
+        // Smaller points for larger timeframes to avoid clutter
+        const pointRadius = tf.minutes <= 360 ? 4 : tf.minutes <= 1440 ? 3 : 2;
 
         this.sharesScatterChart = new Chart(ctx, {
             type: 'scatter',
@@ -1968,7 +2020,7 @@ class MinerHQ {
                     data: data,
                     backgroundColor: 'rgba(0, 212, 255, 0.6)',
                     borderColor: '#00d4ff',
-                    pointRadius: 4
+                    pointRadius: pointRadius
                 }]
             },
             options: {
@@ -1980,9 +2032,12 @@ class MinerHQ {
                     x: {
                         type: 'time',
                         time: {
-                            unit: 'minute',
-                            stepSize: 1,
-                            displayFormats: { minute: 'HH:mm:ss' }
+                            unit: axisConfig.unit,
+                            stepSize: axisConfig.stepSize,
+                            displayFormats: {
+                                minute: axisConfig.fmt,
+                                hour: axisConfig.fmt
+                            }
                         },
                         min: windowStart,
                         max: now,

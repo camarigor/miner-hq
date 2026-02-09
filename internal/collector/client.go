@@ -30,7 +30,7 @@ type MinerAPIResponse struct {
 	CoreVoltage     int     `json:"coreVoltage"`
 	Frequency       int     `json:"frequency"`
 	FanRPM          int     `json:"fanrpm"`
-	FanSpeed        int     `json:"fanspeed"`
+	FanSpeed        float64 `json:"fanspeed"`
 	SharesAccepted   int64   `json:"sharesAccepted"`
 	SharesRejected   int64   `json:"sharesRejected"`
 	BestDiff         float64 `json:"bestDiff"`
@@ -155,7 +155,7 @@ func (c *MinerClient) ToSnapshot(ip string, info *MinerAPIResponse) *storage.Min
 		Power:         info.Power,
 		Voltage:       info.Voltage,
 		FanRPM:        info.FanRPM,
-		FanPercent:    info.FanSpeed,
+		FanPercent:    int(info.FanSpeed),
 		SharesAccept:  info.SharesAccepted,
 		SharesReject:  info.SharesRejected,
 		BestDiff:      info.BestDiff,

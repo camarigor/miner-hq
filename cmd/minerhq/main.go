@@ -177,8 +177,8 @@ func main() {
 
 			time.Sleep(waitDuration)
 
-			// Purge shares older than 7 days (keep current week)
-			deleted, err := store.PurgeOldShares(168) // 168 hours = 7 days
+			// Purge shares older than 8 days (keeps 7 full days visible in the UI)
+			deleted, err := store.PurgeOldShares(192) // 192 hours = 8 days
 			if err != nil {
 				log.Printf("Weekly share purge error: %v", err)
 			} else {
