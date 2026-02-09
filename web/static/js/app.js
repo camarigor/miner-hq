@@ -65,6 +65,13 @@ class MinerHQ {
             if (e.target === modal) this.closeScanModal();
         });
 
+        const manualAddBtn = document.getElementById('manual-add-btn');
+        const manualIpInput = document.getElementById('manual-ip-input');
+        if (manualAddBtn) manualAddBtn.addEventListener('click', () => this.addManualMiner());
+        if (manualIpInput) manualIpInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.addManualMiner();
+        });
+
         const minerModalClose = document.getElementById('miner-modal-close');
         const minerModal = document.getElementById('miner-modal');
         if (minerModalClose) minerModalClose.addEventListener('click', () => this.closeMinerModal());
@@ -1724,6 +1731,47 @@ class MinerHQ {
         } catch (error) {
             console.error('Error adding miner:', error);
             this.showToast('Failed to add miner: ' + error.message, 'error');
+        }
+    }
+
+    async addManualMiner() {
+        const input = document.getElementById('manual-ip-input');
+        const btn = document.getElementById('manual-add-btn');
+        if (!input) return;
+
+        const ip = input.value.trim();
+        if (!ip) {
+            this.showToast('Enter an IP address', 'error');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Adding...';
+
+        try {
+            const response = await fetch('/api/miners', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ip: ip })
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || 'Failed to add miner');
+            }
+
+            const miner = await response.json();
+            this.showToast('Added ' + (miner.hostname || ip), 'success');
+            input.value = '';
+
+            await this.fetchMiners();
+            await this.fetchStats();
+        } catch (error) {
+            console.error('Error adding miner:', error);
+            this.showToast('Failed: ' + error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Add';
         }
     }
 
