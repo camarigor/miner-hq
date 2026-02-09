@@ -1925,14 +1925,15 @@ class MinerHQ {
     getFilteredShares() {
         const filter = document.getElementById('shares-miner-filter');
         const selectedMiner = filter ? filter.value : '';
-
-        if (!selectedMiner) {
-            return this.sharesHistory;
-        }
+        const minDiff = (this.settings?.display?.shares_min_difficulty) || 0;
 
         return this.sharesHistory.filter(s => {
-            const minerIp = s.minerIp || s.ip || '';
-            return minerIp === selectedMiner;
+            if (minDiff > 0 && (s.difficulty || 0) < minDiff) return false;
+            if (selectedMiner) {
+                const minerIp = s.minerIp || s.ip || '';
+                if (minerIp !== selectedMiner) return false;
+            }
+            return true;
         });
     }
 
@@ -2176,6 +2177,9 @@ class MinerHQ {
         }
         if (s.retention) {
             this.setInputValue('retention-days', s.retention.metrics_retention_days || 30);
+        }
+        if (s.display) {
+            this.setSelectValue('display-shares-min-diff', String(s.display.shares_min_difficulty || 0));
         }
     }
 
@@ -2455,6 +2459,9 @@ class MinerHQ {
             },
             retention: {
                 metrics_retention_days: parseInt(document.getElementById('retention-days')?.value) || 30
+            },
+            display: {
+                shares_min_difficulty: parseFloat(document.getElementById('display-shares-min-diff')?.value) || 0
             }
         };
 

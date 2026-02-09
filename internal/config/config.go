@@ -75,6 +75,11 @@ type ServerConfig struct {
 	WriteTimeout time.Duration `json:"write_timeout"`
 }
 
+// DisplayConfig defines chart display preferences
+type DisplayConfig struct {
+	SharesMinDifficulty float64 `json:"shares_min_difficulty"` // Hide shares below this difficulty (0 = show all)
+}
+
 // Config is the main configuration structure
 type Config struct {
 	Server    ServerConfig    `json:"server"`
@@ -84,6 +89,7 @@ type Config struct {
 	Pricing   PricingConfig   `json:"pricing"`
 	Retention RetentionConfig `json:"retention"`
 	Scanner   ScannerConfig   `json:"scanner"`
+	Display   DisplayConfig   `json:"display"`
 	DBPath    string          `json:"db_path"`
 	LogLevel  string          `json:"log_level"`
 }
